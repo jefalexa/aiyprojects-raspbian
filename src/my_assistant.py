@@ -48,11 +48,13 @@ class MyAssistant(object):
     be invoked.
     """
     def __init__(self):
+        print("Running:  __init__")
         self._task = threading.Thread(target=self._run_task)
         self._can_start_conversation = False
         self._assistant = None
 
     def start(self):
+        print("Running:  start")
         """Starts the assistant.
 
         Starts the assistant event loop and begin processing events.
@@ -60,6 +62,7 @@ class MyAssistant(object):
         self._task.start()
 
     def _run_task(self):
+        print("Running:  _run_task")
         credentials = aiy.assistant.auth_helpers.get_assistant_credentials()
         with Assistant(credentials) as assistant:
             self._assistant = assistant
@@ -67,11 +70,14 @@ class MyAssistant(object):
                 self._process_event(event)
 
     def _process_event(self, event):
+        print("Running:  _process_event")
         print(event)
         status_ui = aiy.voicehat.get_status_ui()
         if event.type == EventType.ON_START_FINISHED:
             status_ui.status('ready')
             self._can_start_conversation = True
+            # Turn off microphone listening for hot word
+            self._assistant.set_mic_mute(True)
             # Start the voicehat button trigger.
             aiy.voicehat.get_button().on_press(self._on_button_pressed)
             if sys.stdout.isatty():
@@ -87,17 +93,22 @@ class MyAssistant(object):
 
         elif event.type == EventType.ON_CONVERSATION_TURN_FINISHED:
             status_ui.status('ready')
+            # Turn off microphone listening for hot word
+            self._assistant.set_mic_mute(True)
             self._can_start_conversation = True
 
         elif event.type == EventType.ON_ASSISTANT_ERROR and event.args and event.args['is_fatal']:
             sys.exit(1)
 
     def _on_button_pressed(self):
+        print("Running:  _on_button_pressed")
         # Check if we can start a conversation. 'self._can_start_conversation'
         # is False when either:
         # 1. The assistant library is not yet ready; OR
         # 2. The assistant library is already in a conversation.
         if self._can_start_conversation:
+            # Turn on microphone 
+            self._assistant.set_mic_mute(False)
             self._assistant.start_conversation()
 
 
